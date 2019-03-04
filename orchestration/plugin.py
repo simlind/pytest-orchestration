@@ -13,11 +13,6 @@ import pytest
 from orchestration import orch_run
 from orchestration import reporter
 
-# To enable:  -p orchestration.pluginx
-# Todo: Look over namings, configuration keys, classes etc.
-# Todo: Cleanup prettify
-# Todo: Control maxFails
-# Todo: Support yaml (perhaps)
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ setuptools.setup(
     description="A pytest plugin for orchestrating tests",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/<me_herere>/pytest-orchestration",
+    url="https://github.com/simlind/pytest-orchestration",
     packages=setuptools.find_packages(exclude=['test*']),
     entry_points={"pytest11": ["orchestration = orchestration.plugin"]},
     classifiers=[
