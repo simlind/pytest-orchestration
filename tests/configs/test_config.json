@@ -1,0 +1,30 @@
+{
+  "test_name": "first_long_test",
+  "total_hours": 0.0025,
+  "events": [
+    {
+      "name": "fixture_and_param_func",
+      "interval_sec": 3,
+      "at_startup": true,
+      "params":{
+        "str_value": "test_string",
+        "int_value": 5,
+        "list_value": [1, 2, 3, 4, 5],
+        "dict_value": {"key": "value"}
+      }
+    },
+    {
+      "name": "assert_func",
+      "at_startup": true
+    },
+    {
+      "name": "increament_func",
+      "at_startup": true
+    },
+    {
+      "name": "decreament_func",
+      "interval_sec": 3,
+      "at_startup": true
+    }
+  ]
+}
