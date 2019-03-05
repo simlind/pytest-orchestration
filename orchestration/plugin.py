@@ -162,10 +162,15 @@ def pytest_configure(config):
                 orchestration_description = get_json_description(root, name)
                 if orchestration_description is None:
                     continue
-                # Todo: make it smarter, dont have to set up all if config_to_run is set
-                _setup_fixtures(orchestration_sources, orchestration_description['events'])
-                if config_to_run is not None and config_to_run == orchestration_description['test_name']:
+                # If --run-orch not specified we setup all fixtures
+                if config_to_run is None:
+                    _setup_fixtures(orchestration_sources, orchestration_description['events'])
+                # If --run-orch is specified we only setup its related fixtures
+                elif config_to_run == orchestration_description['test_name']:
+                    _setup_fixtures(orchestration_sources, orchestration_description['events'])
                     _setup_test(config, orchestration_description)
+                    return
+
 
 
 def _setup_fixtures(orch_source, event_list):
