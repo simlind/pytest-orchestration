@@ -4,11 +4,17 @@ import time
 import pytest
 
 CONFIG_BASE_RELPATH = 'tests/configs/'
-TEST_CONFIG_NAME = 'test_config.json'
+TEST_CONFIG_NAME = 'test_config'
+SEC_TEST_CONFIG_NAME = 'sec_test_config'
 
 
 def get_config_under_test():
-    test_config = plugin.get_json_description(CONFIG_BASE_RELPATH, TEST_CONFIG_NAME)
+    test_config = plugin.LOADED_DESCRIPTIONS[TEST_CONFIG_NAME]
+    return test_config
+
+
+def get_sec_config_under_test():
+    test_config = plugin.LOADED_DESCRIPTIONS[SEC_TEST_CONFIG_NAME]
     return test_config
 
 
@@ -47,7 +53,7 @@ def test_fixture_creation(request):
 def test_shared_object(request, dummy):
     test_config = get_config_under_test()
     all_events = plugin.get_events(request, test_config)
-    test_funcs_names = ['increament_func', 'decreament_func']
+    test_funcs_names = ['increament_func_6', 'decreament_func_7']
     test_events = [event for event in all_events if event.name in test_funcs_names]
 
     expected_value = 1
@@ -62,14 +68,33 @@ def test_shared_object(request, dummy):
 def test_param_fixtures(request):
     test_config = get_config_under_test()
     for event in test_config['events']:
-        if event['name'] == 'fixture_and_param_func':
+        if event['name'].startswith('fixture_and_param_func'):
             param_fixtures = event['params']
             break
-    for name, value in param_fixtures.items():
-        assert request.getfixturevalue(name) == value
+    for param_name, value in param_fixtures.items():
+        assert request.getfixturevalue(param_name) == value
 
 
 def test_normal_fix(request, dummy):
     for i in range(10):
         request.getfixturevalue('dummy_adder')
         assert 1 == dummy.inc_value
+
+
+def test_reused_params(request):
+    first_test_config = get_config_under_test()
+    sec_test_config = get_sec_config_under_test()
+    param_fixtures = list()
+    for test_config in [first_test_config, sec_test_config]:
+        for event in test_config['events']:
+            if event['name'].startswith('fixture_and_param_func'):
+                param_fixtures.append(event['params'])
+                break
+    result_dict = dict()
+    for i, event_parms in enumerate(param_fixtures):
+        result_dict[str(i)] = list()
+
+        for param_name, value in event_parms.items():
+            result_dict[str(i)].append(request.getfixturevalue(param_name))
+    for i, result in enumerate(result_dict['0']):
+        assert result_dict['1'][i] != result

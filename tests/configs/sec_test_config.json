@@ -1,0 +1,17 @@
+{
+  "test_name": "sec_test_config",
+  "total_hours": 0.0025,
+  "events": [
+    {
+      "name": "fixture_and_param_func",
+      "interval_sec": 3,
+      "at_startup": true,
+      "params":{
+        "str_value": "sec_test_string",
+        "int_value": 10,
+        "list_value": [2, 4, 6, 8, 10],
+        "dict_value": {"sec_key": "sec_value"}
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import json
 import logging
 import multiprocessing
 import os
+import copy
 import time
 from concurrent.futures import ThreadPoolExecutor
 from os import path
@@ -15,6 +16,8 @@ from orchestration import reporter
 
 
 logger = logging.getLogger(__name__)
+UNIQUE_ID = list(range(100))
+LOADED_DESCRIPTIONS = dict()
 
 
 @pytest.fixture
@@ -45,9 +48,7 @@ def result_reporter(result_reporter_impl):
 @pytest.fixture
 def orchestration_description(request):
     orchestration_name = request.config.getoption('--run-orch')
-    orchestration_descriptions_folder = request.config.inicfg.config.sections['pytest']['orchestration_descriptions']
-    # Todo: fix config getting, shouldnt have to be same as file name
-    orchestration_config = get_json_description(orchestration_descriptions_folder, orchestration_name)
+    orchestration_config = LOADED_DESCRIPTIONS[orchestration_name]
     return orchestration_config
 
 
@@ -75,7 +76,7 @@ def generate_value_fixture(value):
     return pytest.fixture(generated_fixture)
 
 
-def generate_factory_fixture(func):
+def generate_factory_fixture(func, new_params):
 
     def generated_fixture(*args, **kwargs):
 
@@ -84,23 +85,41 @@ def generate_factory_fixture(func):
 
         return factory_func
 
-    arg_spec = inspect.getargspec(func)
-    formatted_args = inspect.formatargspec(*arg_spec)
-    stripped_args = formatted_args.lstrip('(').rstrip(')')
-    func_def = 'lambda {}: generated_fixture{}'.format(stripped_args, formatted_args)
+    args_str = adjust_parameters(func, new_params)
+    func_def = 'lambda {args}: generated_fixture({args})'.format(args=args_str)
     eval_func = eval(func_def, {'generated_fixture': generated_fixture})
     return pytest.fixture(functools.wraps(func)(eval_func))
 
 
-def setup_value_fixtures(events):
-    for event in events:
+def adjust_parameters(func, params):
+    arg_spec = inspect.getargspec(func)
+    formatted_args = inspect.formatargspec(*arg_spec)
+    sig = inspect.signature(func)
+    param_sig_list = list(sig.parameters.values())
+
+    for param in params:
+        param_name = param.rsplit('_', 1)[0]
+        formatted_args = formatted_args.replace(param_name, param)
+        for i, old_param in enumerate(param_sig_list):
+            if old_param.name == param_name:
+                param_sig_list[i] = old_param.replace(name=param)
+    func.__signature__ = sig.replace(parameters=param_sig_list)
+    clean_args_str = formatted_args.lstrip('(').rstrip(')')
+    return clean_args_str
+
+
+def setup_value_fixtures(orchestration_description):
+    desc_working_copy = copy.deepcopy(orchestration_description)
+    for i, event in enumerate(desc_working_copy['events']):
         if 'params' not in event:
             continue
         for param_name, param_value in event['params'].items():
-            globals()[param_name] = generate_value_fixture(param_value)
+            unique_name = '{}_{}'.format(param_name, UNIQUE_ID.pop(0))
+            globals()[unique_name] = generate_value_fixture(param_value)
+            orchestration_description['events'][i]['params'][unique_name] = orchestration_description['events'][i]['params'].pop(param_name)
 
 
-def setup_factory_fixtures(sources, events):
+def setup_factory_fixtures(sources, orchestration_description):
     module_sources = list()
     for source in sources:
         if not path.exists(source):
@@ -109,17 +128,26 @@ def setup_factory_fixtures(sources, events):
         event_module = filepath_to_modulepath(source)
         module_sources.append(event_module)
 
-    for event in events:
+    for i, event in enumerate(orchestration_description['events']):
         event_name = event['name']
         for module in module_sources:
             tmp_module = importlib.import_module(module)
             try:
                 event_fun = getattr(tmp_module, event_name)
-                globals()[event_name] = generate_factory_fixture(event_fun)
+                generated_event_name = '{}_{}'.format(event_name, UNIQUE_ID.pop(0))
+                event_params = event.get('params', list())
+                globals()[generated_event_name] = generate_factory_fixture(event_fun, event_params)
+                orchestration_description['events'][i]['name'] = generated_event_name
                 break
-            except Exception:
-                logger.debug('Event do not exist in {}'.format(module))
+            except Exception as e:
+                logger.debug('Caught exception {}'.format(e))
                 pass
+
+
+def _setup_fixtures(orch_source, orchestration_description):
+    setup_value_fixtures(orchestration_description)
+    setup_factory_fixtures(orch_source, orchestration_description)
+    LOADED_DESCRIPTIONS[orchestration_description['test_name']] = orchestration_description
 
 
 def filepath_to_modulepath(file_path):
@@ -151,7 +179,6 @@ def get_source_and_desc_folder(config):
         raise Exception('No "orchestration_descriptions" entry found in .ini config file')
     return orchestration_sources, orchestration_descriptions_folder
 
-
 def pytest_configure(config):
     logger.warning('setting up our conifgs')
     config_to_run = config.getoption('--run-orch')
@@ -164,18 +191,12 @@ def pytest_configure(config):
                     continue
                 # If --run-orch not specified we setup all fixtures
                 if config_to_run is None:
-                    _setup_fixtures(orchestration_sources, orchestration_description['events'])
+                    _setup_fixtures(orchestration_sources, orchestration_description)
                 # If --run-orch is specified we only setup its related fixtures
                 elif config_to_run == orchestration_description['test_name']:
-                    _setup_fixtures(orchestration_sources, orchestration_description['events'])
+                    _setup_fixtures(orchestration_sources, orchestration_description)
                     _setup_test(config, orchestration_description)
                     return
-
-
-
-def _setup_fixtures(orch_source, event_list):
-    setup_value_fixtures(event_list)
-    setup_factory_fixtures(orch_source, event_list)
 
 
 def _setup_test(config, orch_desc):
