@@ -43,8 +43,8 @@ def test_orchestrate(request, kill_switch, result_reporter, dummy):
     assert 3 == result_reporter.results.qsize()
 
 
-def test_fixture_creation(request):
-    test_config = get_config_under_test()
+@pytest.mark.parametrize('test_config', [get_config_under_test(), get_sec_config_under_test()])
+def test_fixture_creation(request, test_config):
     for event in test_config['events']:
         func = request.getfixturevalue(event['name'])
         assert callable(func)
@@ -98,3 +98,36 @@ def test_reused_params(request):
             result_dict[str(i)].append(request.getfixturevalue(param_name))
     for i, result in enumerate(result_dict['0']):
         assert result_dict['1'][i] != result
+
+
+def test_double_event_in_same_desc(request):
+    sec_test_config = get_sec_config_under_test()
+    first_event = sec_test_config['events'][0]
+    second_event = sec_test_config['events'][1]
+
+    first_event_name = first_event['name']
+    second_event_name = second_event['name']
+    assert first_event_name != second_event_name
+    assert callable(request.getfixturevalue(first_event_name))
+    assert callable(request.getfixturevalue(second_event_name))
+
+    first_event_params = first_event['params']
+    second_event_params = second_event['params']
+
+    assert first_event_params != second_event_params
+    for param_name, param_value in first_event_params.items():
+        assert request.getfixturevalue(param_name) == param_value
+
+    for param_name, param_value in second_event_params.items():
+        assert request.getfixturevalue(param_name) == param_value
+
+
+def test_func_copy():
+
+    def my_func(x, y):
+        return x + y
+
+    new_func = plugin.copy_func(my_func)
+    assert new_func is not my_func
+    assert new_func(1, 1) == 2
+

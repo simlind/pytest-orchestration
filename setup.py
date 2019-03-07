@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pytest-orchestration",
-    version="0.0.3",
+    version="0.0.4",
     author="Simon Lindberg",
     author_email="lindberg.simon@gmail.com",
     description="A pytest plugin for orchestrating tests",

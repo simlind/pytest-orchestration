@@ -12,6 +12,17 @@
         "list_value": [2, 4, 6, 8, 10],
         "dict_value": {"sec_key": "sec_value"}
       }
+    },
+    {
+      "name": "fixture_and_param_func",
+      "interval_sec": 3,
+      "at_startup": true,
+      "params":{
+        "str_value": "sec_test_string_dubplicate",
+        "int_value": 20,
+        "list_value": [20, 40, 60, 80, 100],
+        "dict_value": {"sec_key_dupe": "sec_value_dupe"}
+      }
     }
   ]
 }

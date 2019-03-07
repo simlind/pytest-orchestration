@@ -7,6 +7,7 @@ import multiprocessing
 import os
 import copy
 import time
+import types
 from concurrent.futures import ThreadPoolExecutor
 from os import path
 
@@ -133,7 +134,7 @@ def setup_factory_fixtures(sources, orchestration_description):
         for module in module_sources:
             tmp_module = importlib.import_module(module)
             try:
-                event_fun = getattr(tmp_module, event_name)
+                event_fun = copy_func(getattr(tmp_module, event_name))
                 generated_event_name = '{}_{}'.format(event_name, UNIQUE_ID.pop(0))
                 event_params = event.get('params', list())
                 globals()[generated_event_name] = generate_factory_fixture(event_fun, event_params)
@@ -143,6 +144,18 @@ def setup_factory_fixtures(sources, orchestration_description):
                 logger.debug('Caught exception {}'.format(e))
                 pass
 
+
+def copy_func(func):
+    new_func = types.FunctionType(
+        func.__code__,
+        func.__globals__,
+        name=func.__name__,
+        argdefs=func.__defaults__,
+        closure=func.__closure__
+    )
+    new_func = functools.update_wrapper(new_func, func)
+    new_func.__kwdefaults__ = func.__kwdefaults__
+    return new_func
 
 def _setup_fixtures(orch_source, orchestration_description):
     setup_value_fixtures(orchestration_description)
