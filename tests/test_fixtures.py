@@ -19,7 +19,7 @@ def get_sec_config_under_test():
 
 
 @pytest.fixture
-def result_reporter_impl(report_queue):
+def result_reporter(report_queue):
 
     my_reporter = reporter.ResultReporter(report_queue)
 

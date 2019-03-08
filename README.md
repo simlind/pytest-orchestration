@@ -2,6 +2,11 @@
 
 Pytest-Orchestration is configuration driven test orchestration plugin, designed with the intention of being used for performance tests, however it might fit other purposes as well.
 
+## Installation
+```
+pip install pytest-orchestration
+```
+
 ## Configuration/Description
 
 The configuration describing the orchestrated tests has the form of a .json file.
@@ -60,13 +65,12 @@ def start_playback(video_player, video_path, kill_switch, result_reporter):
 ```
 
 ## Reporter
-Reporter is a class provided that the orchestration is using to collect reports/result/info from all its orchestrated events. An implemented event can use the `result_reporter()` fixture to get the instance. The reporter has 2 main methods worth noticing; ``monitor()`` and ``on_result()``. The monitor method will be running in the background of the ``orchestration`` and monitor the Queue object it contains for new info, if it finds something then ``on_result()`` will be called which will pop the info and log it. It is possible to implement your own Reporter class by inheriting from provided ResultReporter class and implementing your own ``on_result()`` method. If you implement this you also need to override the ``result_reporter_impl()`` fixture and make it return your reporter instead.
+Reporter is a class provided that the orchestration is using to collect reports/result/info from all its orchestrated events. An implemented event can use the `result_reporter()` fixture to get the instance. The reporter has 2 main methods worth noticing; ``monitor()`` and ``on_result()``. The monitor method will be running in the background of the ``orchestration`` and monitor the Queue object it contains for new info, if it finds something then ``on_result()`` will be called which will pop the info and log it. It is possible to implement your own Reporter class by inheriting from provided ResultReporter class and implementing your own ``on_result()`` method. If you implement this you also need to override the ``result_reporter(report_queue)`` fixture and make it return your reporter instead.
 
 ## Fixtures
 The plugin comes with a few fixture helpers, these are:
 * kill_switch() - Gives you a `multiprocessing.Event()` which will be set when tests finishes, so your event can know when test has ended and tear itself down properly.
 * result_reporter() - Facilitates a way to collect and report what is important from your events, see Reporter section.
-* result_reporter_impl(report_queue) - Fixture which should only be used if you wanna override the result_reporter, see Reporter section
 * report_queue() - Fixture which returns a thread safe `multiprocessing.Manager().Queue()` object which is injected into result_reporter, could be overridden as well.
 
 

@@ -37,25 +37,21 @@ def report_queue():
 
 
 @pytest.fixture
-def result_reporter_impl(report_queue):
-    return reporter.ResultReporter(report_queue)
+def result_reporter(report_queue):
+    result_reporter = reporter.ResultReporter(report_queue)
+    return result_reporter
 
 
 @pytest.fixture
-def result_reporter(result_reporter_impl):
-    return result_reporter_impl
-
-
-@pytest.fixture
-def orchestration_description(request):
+def target_description(request):
     orchestration_name = request.config.getoption('--run-orch')
     orchestration_config = LOADED_DESCRIPTIONS[orchestration_name]
     return orchestration_config
 
 
 @pytest.fixture
-def all_events(request, orchestration_description):
-    event_objects = get_events(request, orchestration_description)
+def all_events(request, target_description):
+    event_objects = get_events(request, target_description)
     return event_objects
 
 
@@ -157,6 +153,7 @@ def copy_func(func):
     new_func.__kwdefaults__ = func.__kwdefaults__
     return new_func
 
+
 def _setup_fixtures(orch_source, orchestration_description):
     setup_value_fixtures(orchestration_description)
     setup_factory_fixtures(orch_source, orchestration_description)
@@ -183,20 +180,20 @@ def get_json_description(base_folder, name):
 
 def get_source_and_desc_folder(config):
     try:
-        orchestration_sources = config.inicfg.config.sections['pytest']['orchestration_sources'].split(',')
+        orchestration_sources = config.sections['pytest']['orchestration_sources'].split(',')
     except KeyError:
         raise Exception('No "orchestration_sources" entry found in .ini config')
     try:
-        orchestration_descriptions_folder = config.inicfg.config.sections['pytest']['orchestration_descriptions']
+        orchestration_descriptions_folder = config.sections['pytest']['orchestration_descriptions']
     except KeyError:
         raise Exception('No "orchestration_descriptions" entry found in .ini config file')
     return orchestration_sources, orchestration_descriptions_folder
 
+
 def pytest_configure(config):
-    logger.warning('setting up our conifgs')
     config_to_run = config.getoption('--run-orch')
     if config.getoption('--load-orch') or config_to_run:
-        orchestration_sources, orchestration_descriptions_folder = get_source_and_desc_folder(config)
+        orchestration_sources, orchestration_descriptions_folder = get_source_and_desc_folder(config.inicfg.config)
         for root, dirs, files in os.walk(orchestration_descriptions_folder, topdown=False):
             for name in files:
                 orchestration_description = get_json_description(root, name)
