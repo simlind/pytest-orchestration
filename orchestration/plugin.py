@@ -211,11 +211,12 @@ def pytest_configure(config):
 
 def _setup_test(config, orch_desc):
     test_name = 'test_{}'.format(orch_desc['test_name'])
+    timeout = config.sections['pytest'].get('orchestration_timeout', 60*60)
     test_time_sec = orch_desc['total_hours'] * 3600
     setup_fixtures = orch_desc.get('unref_setup_fixtures', list())
     orch_run.generate_test(test_name, test_time_sec, setup_fixtures)
     config.args.append(orch_run.get_path())
-    config.option.timeout = float(test_time_sec + 60)
+    config.option.timeout = float(test_time_sec + timeout)
     config.option.keyword = test_name
 
 
