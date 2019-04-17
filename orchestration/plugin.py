@@ -22,11 +22,16 @@ LOADED_DESCRIPTIONS = dict()
 
 
 @pytest.fixture
-def kill_switch():
+def kill_switch(request):
     """
     Event that will be set when test is ended so we know when subprocess should be killed
     """
     kill_event = multiprocessing.Event()
+
+    def fin():
+        kill_event.set()
+
+    request.addfinalizer(fin)
     return kill_event
 
 
@@ -212,6 +217,10 @@ def pytest_configure(config):
 def _setup_test(config, orch_desc):
     test_name = 'test_{}'.format(orch_desc['test_name'])
     timeout = config.inicfg.config.sections['pytest'].get('orchestration_timeout', 60*60)
+
+    if config.getoption('--runtime-orch'):
+        orch_desc['total_hours'] = int(config.getoption('--runtime-orch'))
+
     test_time_sec = orch_desc['total_hours'] * 3600
     setup_fixtures = orch_desc.get('unref_setup_fixtures', list())
     orch_run.generate_test(test_name, test_time_sec, setup_fixtures)
@@ -224,11 +233,19 @@ def pytest_addoption(parser):
     group = parser.getgroup("orchestration", "orchestrating tests")
     group.addoption('--load-orch', action='store_true', default=False, help='orchestration events will be loaded')
     group.addoption('--run-orch', action='store', help='orchestration description name')
+    group.addoption('--runtime-orch', action='store', help='Optional, runtime for orch test, will override description value')
 
 
 def create_event_from_json(json_config, func):
     name = json_config['name']
-    interval_sec = json_config.get('interval_sec')
+    if json_config.get('interval_sec'):
+        interval_sec = json_config.get('interval_sec')
+    elif json_config.get('interval_min'):
+        interval_sec = json_config.get('interval_min') * 60
+    elif json_config.get('interval_hour'):
+        interval_sec = json_config.get('interval_hour') * 60 * 60
+    else:
+        interval_sec = None
     at_startup = json_config.get('at_startup', True)
     at_teardown = json_config.get('at_teardown', False)
     event = Event(name, func, interval_sec, at_startup, at_teardown)
