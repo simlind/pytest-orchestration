@@ -295,6 +295,7 @@ class Orchestrator:
     Class that takes a list of events and schedules them according to their
     interval_sec parameter.
     """
+    TIC_TIME = 60
 
     def __init__(self, total_time_sec, events, kill_event, reporter, *args):
         self.total_time_sec = total_time_sec
@@ -344,8 +345,8 @@ class Orchestrator:
         """
         logger.info('next_event timeout: {}'.format(timeout_sec))
         if not self.interval_events:
-            logger.info('No interval events left to run, waiting {} sec until end of test'.format(timeout_sec))
-            time.sleep(timeout_sec)
+            logger.info('No interval events left to run, {} sec until end of test'.format(timeout_sec))
+            time.sleep(self.TIC_TIME)
             return None
         upcoming_event = self.interval_events.pop(0)
         if upcoming_event.time_left > timeout_sec:
