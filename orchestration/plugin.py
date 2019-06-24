@@ -219,7 +219,7 @@ def _setup_test(config, orch_desc):
     timeout = config.inicfg.config.sections['pytest'].get('orchestration_timeout', 60*60)
 
     if config.getoption('--runtime-orch'):
-        orch_desc['total_hours'] = int(config.getoption('--runtime-orch'))
+        orch_desc['total_hours'] = float(config.getoption('--runtime-orch'))
 
     test_time_sec = orch_desc['total_hours'] * 3600
     setup_fixtures = orch_desc.get('unref_setup_fixtures', list())
