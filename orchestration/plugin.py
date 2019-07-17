@@ -381,6 +381,9 @@ class Orchestrator:
             time_left = end_time - time.time()
             if time_left <= 0:
                 time_left = 0
+            if self.kill_event.is_set():
+                logger.info('Kill switch triggered, stopping test!')
+                break
             self.next_event(time_left)
         self.run_teardown_events()
         self.kill_all_events()
