@@ -212,6 +212,7 @@ def pytest_configure(config):
                     _setup_fixtures(orchestration_sources, orchestration_description)
                     _setup_test(config, orchestration_description)
                     return
+        pytest.exit('Failed to setup orchestration!')
 
 
 def _setup_test(config, orch_desc):
@@ -377,14 +378,18 @@ class Orchestrator:
         logger.info('Test orchestration started!')
         end_time = time.time() + self.total_time_sec
         self.run_startup_events()
+        test_failure = False
         while time.time() <= end_time:
             time_left = end_time - time.time()
             if time_left <= 0:
                 time_left = 0
             if self.kill_event.is_set():
                 logger.info('Kill switch triggered, stopping test!')
+                test_failure = True
                 break
             self.next_event(time_left)
         self.run_teardown_events()
         self.kill_all_events()
+        if test_failure:
+            pytest.fail('Test failed', False)
         logger.info('Orchestration test finished!')
